@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      .RoomDiv {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Chat App</h1>
+    <form id="form">
+      <input id="RoomIdinput" type="text" placeholder="Enter Room Id" />
+      <input id="Nameinput" type="text" placeholder="Enter your UserName" />
+      <button type="submit">Join</button>
+    </form>
+    <div id="RoomDiv" class="RoomDiv">
+      <h1 id="Room"></h1>
+      <div>
+        <input id="message" type="text" placeholder="Enter message" />
+        <button id="SendBtn">send</button>
+      </div>
+      <div id="usersList"></div>
+      <div id="messageList"></div>
+    </div>
+  </body>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const form = document.getElementById("form");
+    const RoomId = document.getElementById("RoomIdinput");
+    const Name = document.getElementById("Nameinput");
+    const Message = document.getElementById("message");
+    const socket = io();
+    let UserName = "";
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (RoomId.value && Name.value) {
+        socket.emit("join", {
+          roomId: RoomId.value,
+          username: Name.value,
+        });
+        UserName = Name.value;
+        RoomId.value = "";
+        Name.value = "";
+      }
+    });
+    socket.on("Joined", (mes) => {
+      alert(mes.text);
+      const idArr = mes.text.split(" ");
+      const last = idArr[idArr.length - 1];
+      const Room = document.getElementById("Room");
+      Room.innerText = last;
+
+      document.getElementById("RoomDiv").classList.remove("RoomDiv");
+    });
+
+    socket.on("ActiveUsers", ({ users }) => {
+      const usersList = document.getElementById("usersList");
+      usersList.innerHTML = "";
+      const ActiveH1 = document.createElement("h2");
+      ActiveH1.innerText = "ActiveUsers";
+      usersList.append(ActiveH1);
+      users.forEach((user) => {
+        const userElement = document.createElement("p");
+
+        const userText = document.createTextNode(user);
+
+        userElement.appendChild(userText);
+
+        usersList.appendChild(userElement);
+      });
+    });
+    socket.on("messageReceived", ({ message }) => {
+      const messageList = document.getElementById("messageList");
+      messageList.innerHTML = "";
+      const ActiveH1 = document.createElement("h2");
+      ActiveH1.innerText = "All Messages";
+      messageList.append(ActiveH1);
+      // Clear previous message list
+     
+      message.forEach((message) => {
+        // Create a new paragraph element for each message
+        const messageElement = document.createElement("p");
+
+        // Create a text node with the formatted message
+        const messageText = document.createTextNode(
+          `${message.username}: ${message.message}`
+        );
+
+        // Append the text node to the paragraph element
+        messageElement.appendChild(messageText);
+
+        // Append the paragraph element to the messageList div
+        messageList.appendChild(messageElement);
+      });
+    });
+
+    document.getElementById("SendBtn").addEventListener("click", () => {
+      socket.emit("sendMessage", {
+        message: Message.value,
+      });
+    });
+  </script>
+</html>
